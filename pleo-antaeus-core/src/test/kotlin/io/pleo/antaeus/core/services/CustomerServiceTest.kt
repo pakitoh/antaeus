@@ -17,18 +17,14 @@ private const val CUSTOMER_ID_1 = 101
 private const val CUSTOMER_ID_2 = 102
 
 class CustomerServiceTest {
-    private val customer1 = Customer(CUSTOMER_ID_1, Currency.EUR)
-    private val customer2 = Customer(CUSTOMER_ID_2, Currency.DKK)
-    private val dal = mockk<AntaeusDal> {
-        every { fetchCustomer(NOT_FOUND_CUSTOMER_ID) } returns null
-        every { fetchCustomer(CUSTOMER_ID_1) } returns customer1
-        every { fetchCustomer(CUSTOMER_ID_2) } returns customer2
-        every { fetchCustomers() } returns listOf(customer1, customer2)
-    }
-    private val customerService = CustomerService(dal = dal)
 
     @Test
     fun `fetch should throw exception if customer is not found`() {
+        val dal = mockk<AntaeusDal> {
+            every { fetchCustomer(NOT_FOUND_CUSTOMER_ID) } returns null
+        }
+        val customerService = CustomerService(dal = dal)
+
         assertThrows<CustomerNotFoundException> {
             customerService.fetch(NOT_FOUND_CUSTOMER_ID)
         }
@@ -36,13 +32,26 @@ class CustomerServiceTest {
 
     @Test
     fun `fetch should return customer if found`() {
+        val customer = Customer(CUSTOMER_ID_1, Currency.EUR)
+        val dal = mockk<AntaeusDal> {
+            every { fetchCustomer(CUSTOMER_ID_1) } returns customer
+        }
+        val customerService = CustomerService(dal = dal)
+
         val fetchedCustomer  = customerService.fetch(CUSTOMER_ID_1)
 
-        assertThat(fetchedCustomer, equalTo(customer1))
+        assertThat(fetchedCustomer, equalTo(customer))
     }
 
     @Test
     fun `fetchAll should return all customers`() {
+        val customer1 = Customer(CUSTOMER_ID_1, Currency.EUR)
+        val customer2 = Customer(CUSTOMER_ID_2, Currency.DKK)
+        val dal = mockk<AntaeusDal> {
+            every { fetchCustomers() } returns listOf(customer1, customer2)
+        }
+        val customerService = CustomerService(dal = dal)
+
         val fetchedCustomers  = customerService.fetchAll()
 
         assertThat(fetchedCustomers, containsInAnyOrder(customer1, customer2))

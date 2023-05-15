@@ -21,4 +21,8 @@ class InvoiceService(private val dal: AntaeusDal) {
     fun fetchPending(): List<Invoice> {
         return dal.fetchPendingInvoices()
     }
+
+    fun update(id: Int, updatedInvoice: Invoice) {
+        dal.updateInvoice(id, updatedInvoice)
+    }
 }
