@@ -1,8 +1,6 @@
 package io.pleo.antaeus.core.services
 
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.*
 import io.pleo.antaeus.core.exceptions.InvoiceNotFoundException
 import io.pleo.antaeus.data.AntaeusDal
 import io.pleo.antaeus.models.Currency
@@ -83,7 +81,7 @@ class InvoiceServiceTest {
         val invoice = Invoice(EXISTING_INVOICE_ID_2, CUSTOMER_ID_1, money, InvoiceStatus.PENDING)
         val invoiceToUpdate = invoice.copy(status = InvoiceStatus.PAID)
         val dal = mockk<AntaeusDal> {
-            every { updateInvoice(EXISTING_INVOICE_ID_2, invoiceToUpdate) } returns Unit
+            every { updateInvoice(EXISTING_INVOICE_ID_2, invoiceToUpdate) } just runs
         }
         val invoiceService = InvoiceService(dal = dal)
 

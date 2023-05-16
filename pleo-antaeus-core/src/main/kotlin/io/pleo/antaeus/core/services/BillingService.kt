@@ -10,14 +10,33 @@ import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
+private const val MAX_ATTEMPTS = 4
+
 class BillingService(
     private val paymentProvider: PaymentProvider,
     private val invoiceService: InvoiceService
 ) {
+    var maxAttempts = MAX_ATTEMPTS
+
     fun bill(invoice: Invoice) {
-        var newStatus = sendInvoice(invoice)
+        var newStatus = sendInvoiceWithRetry(invoice)
         invoiceService.update(invoice.id, invoice.copy(status = newStatus))
     }
+
+    private fun sendInvoiceWithRetry(invoice: Invoice): InvoiceStatus {
+        var newStatus = sendInvoice(invoice)
+        var attempt = 0
+        while (attempt < maxAttempts && newStatus == InvoiceStatus.UNEXPECTED_ERROR) {
+            Thread.sleep(calculateExponentialBackoff(attempt))
+            logger.debug { "Retrying payment request for invoice ${invoice.id} for ${attempt} time" }
+            newStatus = sendInvoice(invoice)
+            attempt++
+        }
+        return newStatus
+    }
+
+    private fun calculateExponentialBackoff(attempt: Int) =
+        Math.pow(2.0, attempt.toDouble()).toLong() * 1000
 
     private fun sendInvoice(invoice: Invoice): InvoiceStatus {
         logger.debug { "Requesting payment for invoice ${invoice.id}" }
