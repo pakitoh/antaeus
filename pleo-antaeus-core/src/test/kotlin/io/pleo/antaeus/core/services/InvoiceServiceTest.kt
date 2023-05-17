@@ -23,12 +23,13 @@ private const val INVOICE_AMOUNT = 301L
 class InvoiceServiceTest {
 
     private val money = Money(BigDecimal.valueOf(INVOICE_AMOUNT), Currency.EUR)
+    private val pendingInvoice = Invoice(EXISTING_INVOICE_ID_1, CUSTOMER_ID_1, money, InvoiceStatus.PENDING)
+    private val paidInvoice = Invoice(EXISTING_INVOICE_ID_2, CUSTOMER_ID_1, money, InvoiceStatus.PAID)
+    private val invoiceToUpdate = pendingInvoice.copy(status = InvoiceStatus.PAID)
 
     @Test
-    fun `fetch should throw exception if invoice is not found`() {
-        val dal = mockk<AntaeusDal> {
-            every { fetchInvoice(NOT_FOUND_INVOICE_ID) } returns null
-        }
+    fun `fetch should throw exception when invoice is not found`() {
+        val dal = fetchInvoice(NOT_FOUND_INVOICE_ID, null)
         val invoiceService = InvoiceService(dal = dal)
 
         assertThrows<InvoiceNotFoundException> {
@@ -37,56 +38,76 @@ class InvoiceServiceTest {
     }
 
     @Test
-    fun `fetch should return invoice if found`() {
-        val invoice = Invoice(EXISTING_INVOICE_ID_1, CUSTOMER_ID_1, money, InvoiceStatus.PAID)
-        val dal = mockk<AntaeusDal> {
-            every { fetchInvoice(EXISTING_INVOICE_ID_1) } returns invoice
-        }
+    fun `fetch should return invoice when found`() {
+        val dal = fetchInvoice(paidInvoice.id, paidInvoice)
         val invoiceService = InvoiceService(dal = dal)
 
-        val fetchedInvoice = invoiceService.fetch(EXISTING_INVOICE_ID_1)
+        val fetchedInvoice = invoiceService.fetch(paidInvoice.id)
 
-        assertThat(fetchedInvoice, equalTo(invoice))
+        assertThat(fetchedInvoice, equalTo(paidInvoice))
     }
 
     @Test
     fun `fetchAll should return all invoices`() {
-        val invoice1 = Invoice(EXISTING_INVOICE_ID_1, CUSTOMER_ID_1, money, InvoiceStatus.PAID)
-        val invoice2 = Invoice(EXISTING_INVOICE_ID_2, CUSTOMER_ID_1, money, InvoiceStatus.PENDING)
-        val dal = mockk<AntaeusDal> {
-            every { fetchInvoices() } returns listOf(invoice1, invoice2)
-        }
+        val dal = fetchInvoices(listOf(paidInvoice, pendingInvoice))
         val invoiceService = InvoiceService(dal = dal)
 
         val fetchedInvoices = invoiceService.fetchAll()
 
-        assertThat(fetchedInvoices, containsInAnyOrder(invoice1, invoice2))
+        assertThat(fetchedInvoices, containsInAnyOrder(paidInvoice, pendingInvoice))
     }
 
     @Test
-    fun `fetchPending should return all PENDING invoices`() {
-        val pendingInvoice = Invoice(EXISTING_INVOICE_ID_2, CUSTOMER_ID_1, money, InvoiceStatus.PENDING)
-        val dal = mockk<AntaeusDal> {
-            every { fetchPendingInvoices() } returns listOf(pendingInvoice)
-        }
+    fun `fetchByStatus pending should return all PENDING invoices`() {
+        val dal = fetchInvoicesByStatus(InvoiceStatus.PENDING, listOf(pendingInvoice))
         val invoiceService = InvoiceService(dal = dal)
 
-        val pendingInvoices = invoiceService.fetchPending()
+        val pendingInvoices = invoiceService.fetchByStatus(InvoiceStatus.PENDING)
 
         assertThat(pendingInvoices, containsInAnyOrder(pendingInvoice))
     }
 
     @Test
+    fun `fetchByStatus paid should return all PAID invoices`() {
+        val dal = fetchInvoicesByStatus(InvoiceStatus.PAID, listOf(paidInvoice))
+        val invoiceService = InvoiceService(dal = dal)
+
+        val pendingInvoices = invoiceService.fetchByStatus(InvoiceStatus.PAID)
+
+        assertThat(pendingInvoices, containsInAnyOrder(paidInvoice))
+    }
+
+    @Test
     fun `update should update invoice in DB`() {
-        val invoice = Invoice(EXISTING_INVOICE_ID_2, CUSTOMER_ID_1, money, InvoiceStatus.PENDING)
-        val invoiceToUpdate = invoice.copy(status = InvoiceStatus.PAID)
-        val dal = mockk<AntaeusDal> {
-            every { updateInvoice(EXISTING_INVOICE_ID_2, invoiceToUpdate) } just runs
-        }
+        val dal = updateInvoice(invoiceToUpdate)
         val invoiceService = InvoiceService(dal = dal)
 
         invoiceService.update(id = invoiceToUpdate.id, updatedInvoice = invoiceToUpdate)
 
         verify { dal.updateInvoice(id = invoiceToUpdate.id, updatedInvoice = invoiceToUpdate) }
+    }
+
+    private fun fetchInvoice(id: Int, resul: Invoice?) : AntaeusDal {
+        return mockk<AntaeusDal> {
+            every { fetchInvoice(id) } returns resul
+        }
+    }
+
+    private fun fetchInvoices(resul: List<Invoice>) : AntaeusDal {
+        return mockk<AntaeusDal> {
+            every { fetchInvoices() } returns resul
+        }
+    }
+
+    private fun fetchInvoicesByStatus(status: InvoiceStatus, resul: List<Invoice>) : AntaeusDal {
+        return mockk<AntaeusDal> {
+            every { fetchInvoicesByStatus(status) } returns resul
+        }
+    }
+
+    private fun updateInvoice(updatedInvoice : Invoice) : AntaeusDal {
+        return mockk<AntaeusDal> {
+            every { updateInvoice(updatedInvoice.id, updatedInvoice) } just runs
+        }
     }
 }

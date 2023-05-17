@@ -26,7 +26,7 @@ class BillingService(
     private fun sendInvoiceWithRetry(invoice: Invoice): InvoiceStatus {
         var newStatus = sendInvoice(invoice)
         var attempt = 0
-        while (attempt < maxAttempts && newStatus == InvoiceStatus.UNEXPECTED_ERROR) {
+        while (attempt < maxAttempts && newStatus == InvoiceStatus.ERROR) {
             Thread.sleep(calculateExponentialBackoff(attempt))
             logger.debug { "Retrying payment request for invoice ${invoice.id} for ${attempt} time" }
             newStatus = sendInvoice(invoice)
@@ -50,13 +50,28 @@ class BillingService(
             }
         } catch (e: CurrencyMismatchException) {
             logger.error { "Wrong currency ${invoice.amount.currency} for invoice ${invoice.id}" }
-            return InvoiceStatus.CURRENCY_ERROR
+            return InvoiceStatus.CURRENCY_MISMATCH
         } catch (e: CustomerNotFoundException) {
             logger.error { "Customer ${invoice.customerId} not found for invoice ${invoice.id}" }
-            return InvoiceStatus.CUSTOMER_ERROR
+            return InvoiceStatus.CUSTOMER_NOT_FOUND
         } catch (e: NetworkException) {
             logger.error { "Unexpected ERROR for invoice ${invoice.id}" }
-            return InvoiceStatus.UNEXPECTED_ERROR
+            return InvoiceStatus.ERROR
         }
     }
+
+    fun processPending() {
+        logger.info { "Starting to request the payment of pending invoices" }
+        invoiceService
+            .fetchByStatus(InvoiceStatus.PENDING)
+            .forEach { bill(it) }
+    }
+
+    fun processRejected() {
+        logger.info { "Starting to request the payment of rejected invoices" }
+        invoiceService
+            .fetchByStatus(InvoiceStatus.REJECTED)
+            .forEach { bill(it) }
+    }
+
 }
