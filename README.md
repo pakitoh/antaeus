@@ -174,7 +174,7 @@ So we are going to notify the Invoice system using the same mechanism as before 
 - it throws `NetworkException`: this happens when there has been some kind of communication problem. 
 We should retry after some time because the problem could disappear. 
 A nice retry policy should include stopping after certain number of attempts and using something like `exponential backoff`. 
-The invoice status will be set to **ERROR**.
+The invoice status will be set to **ERROR** if the problem is not solved after the retries.
 
 ##### Resiliency patterns
 
@@ -183,6 +183,7 @@ Every time we design the connection to an external system we should think about 
 - retries could help us to avoid some kind of problems.
 - adding a circuit breaker will help to not overload the external system when it is not responding properly.
 - perhaps we are only allowed to call an external APIs a number of times per period of time. If that's the case we need to add a rate limiting mechanism.
+
 We are going to continue keeping it simple and we'll set up a retry policy with exponential backoff and a limit of retries.
 Maybe we can add the circuit breaker in the second iteration.
 
@@ -212,9 +213,12 @@ We also appreciate side effects of creating a good test suite while developing l
 - safety net for refactors and future changes
 
 ### Observability
-We'll write **log messages** while the system is running using different levels in order to understand what is happening in every moment. 
+We'll write **log messages** while the system is running using different levels in order to understand what is happening in every moment.
+
 Monitoring the execution using **metrics** is a must in order to understand how the system behaves in real life. We won't add metrics in the challenge though.
+
 It would be nice to add a **trace id** to each execution in order to be able to understand what happens with each request in different systems.
+
 Existing invoiceId could work but we need to ensure that we are able to query all systems using that id in our observability stack. 
 
 ### Security
@@ -224,7 +228,7 @@ However, we'll keep those concerns out of the challenge.
 
 ### Performance
 As everybody knows, [premature optimization is the root of all evil](https://wiki.c2.com/?PrematureOptimization) so we are approaching the development of the system in a naive way.
-If performance becomes a problem we can improve it initially with these approaches:
+If performance becomes a problem we can improve it following these approaches:
 - Fetching invoices using pagination: if the number of invoices to process is too big, fetching them from DB could take too long. 
 It would be better to create batches of invoices and to do so we can add pagination to our fetching queries. 
 Simple pagination could work as a first approach but we can also implement [keyset pagination](https://use-the-index-luke.com/no-offset) if needed. 
@@ -232,15 +236,15 @@ Simple pagination could work as a first approach but we can also implement [keys
 But most of the processing time will be waiting the result to external payment provider. 
 In this kind of workload ([IO intensive](https://www.baeldung.com/cs/cpu-io-bound)) we will benefit of using async programming. 
 Any of the existing mechanisms to create asynchronous code will help in this regard: 
-- using plain old threads from a thread pool 
-- or brand new [virtual threads](https://wiki.openjdk.org/display/loom/Getting+started) from Loom project
-- or blocking coroutines (because they are not using an asynchronous HTTP client under the hood) 
-- or real [parallel requests](https://ktor.io/docs/request.html#parallel_requests)
+  - using plain old threads from a thread pool 
+  - or brand new [virtual threads](https://wiki.openjdk.org/display/loom/Getting+started) from Loom project
+  - or blocking coroutines (because they are not using an asynchronous HTTP client under the hood) 
+  - or real [parallel requests](https://ktor.io/docs/request.html#parallel_requests)
 
 Of course there will be costs and drawbacks depending on the selected option. 
 
 ### Metadata
-Are we happy with no metadata in DB? Having columns like created_date, updated_date or actor could help in future troubleshooting scenarios.
+Are we happy with no metadata in DB? Having columns like **created_date**, **updated_date** or **updated_by** could help in future troubleshooting scenarios.
 
 ## Iterative development
 
@@ -295,7 +299,8 @@ We can achieve that using the transactionality mechanism present in relational D
 ### Iteration #5 Sharding
 
 If the amount of invoices keep growing we can face a different kind of problems: DB operations will take longer and reduce performance.
-We could think on developing an **archiving** mechanism to store old invoices in a different data store. This will help in fetching pending invoices operation but it will add complexity in the REST layer if we want to be able to query thhose old invoices.
+We could think on developing an **archiving** mechanism to store old invoices in a different data store. 
+This will help in fetching pending invoices operation but it will add complexity in the REST layer if we want to be able to query those old invoices.
 [DB sharding](https://en.wikipedia.org/wiki/Shard_(database_architecture)) could be a more suitable approach in this scenario as it seems that we can split the dataset in a natural way by customers.
 
 We have to add 2 new components:
@@ -323,7 +328,9 @@ I've spent around 16 hours working on the challenge:
 ## Conclusion
 
 It has been fun doing the challenge!! 😁
-Having the DB as communication mechanism was a weird idea for me at first and that forced me to think outside my comfort zone which is always enriching. 
+
+Having the DB as communication mechanism was a weird idea for me at first and that forced me to think outside my comfort zone which is always enriching.
+
 There are lots of ideas that I had to leave out due to time limitations (I would have loved to play a bit with Ktor) but we always have to ship at some point. 
 
 Cheers!
