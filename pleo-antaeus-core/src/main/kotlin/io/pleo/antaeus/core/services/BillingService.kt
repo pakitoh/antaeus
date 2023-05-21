@@ -4,19 +4,21 @@ import io.pleo.antaeus.core.exceptions.CurrencyMismatchException
 import io.pleo.antaeus.core.exceptions.CustomerNotFoundException
 import io.pleo.antaeus.core.exceptions.NetworkException
 import io.pleo.antaeus.core.external.PaymentProvider
+import io.pleo.antaeus.core.infra.MAX_ATTEMPTS
+import io.pleo.antaeus.core.infra.Retry
 import io.pleo.antaeus.models.Invoice
 import io.pleo.antaeus.models.InvoiceStatus
 import mu.KotlinLogging
 
 private val logger = KotlinLogging.logger {}
 
-private const val MAX_ATTEMPTS = 4
 
 class BillingService(
     private val paymentProvider: PaymentProvider,
     private val invoiceService: InvoiceService
 ) {
-    var maxAttempts = MAX_ATTEMPTS
+
+    var maxRetries : Int = MAX_ATTEMPTS
 
     fun bill(invoice: Invoice) {
         var newStatus = sendInvoiceWithRetry(invoice)
@@ -24,19 +26,15 @@ class BillingService(
     }
 
     private fun sendInvoiceWithRetry(invoice: Invoice): InvoiceStatus {
-        var newStatus = sendInvoice(invoice)
-        var attempt = 0
-        while (attempt < maxAttempts && newStatus == InvoiceStatus.ERROR) {
-            Thread.sleep(calculateExponentialBackoff(attempt))
-            logger.debug { "Retrying payment request for invoice ${invoice.id} for ${attempt} time" }
-            newStatus = sendInvoice(invoice)
-            attempt++
-        }
-        return newStatus
+        return Retry(maxRetries)
+            .withRetry(
+                ::sendInvoice,
+                invoice,
+                ::isRetryNeeded
+            )
     }
 
-    private fun calculateExponentialBackoff(attempt: Int) =
-        Math.pow(2.0, attempt.toDouble()).toLong() * 1000
+    private fun isRetryNeeded(status: InvoiceStatus) = status == InvoiceStatus.ERROR
 
     private fun sendInvoice(invoice: Invoice): InvoiceStatus {
         logger.debug { "Requesting payment for invoice ${invoice.id}" }

@@ -95,7 +95,7 @@ class BillingServiceTest {
             paymentProvider = paymentProvider,
             invoiceService = InvoiceService(dal)
         )
-        billingService.maxAttempts = 2
+        billingService.maxRetries = 2
 
         billingService.bill(pendingInvoice)
 
@@ -112,7 +112,7 @@ class BillingServiceTest {
             paymentProvider = paymentProvider,
             invoiceService = InvoiceService(dal)
         )
-        billingService.maxAttempts = 2
+        billingService.maxRetries = 2
 
         billingService.bill(pendingInvoice)
 
