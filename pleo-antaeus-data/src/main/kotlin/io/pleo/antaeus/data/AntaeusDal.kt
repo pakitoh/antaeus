@@ -14,6 +14,7 @@ import io.pleo.antaeus.models.InvoiceStatus
 import io.pleo.antaeus.models.Money
 import org.jetbrains.exposed.sql.*
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.inList
 import org.jetbrains.exposed.sql.transactions.transaction
 
 class AntaeusDal(private val db: Database) {
@@ -41,6 +42,21 @@ class AntaeusDal(private val db: Database) {
             InvoiceTable
                 .select { InvoiceTable.status eq status.toString() }
                 .map { it.toInvoice() }
+        }
+    }
+
+    fun fetchInvoicesByStatusAndUpdate(status: InvoiceStatus): List<Invoice> {
+        return transaction(db) {
+            val fetched = InvoiceTable
+                .select { InvoiceTable.status eq status.toString() }
+                .map { it.toInvoice() }
+            fetched.map { fetchedInvoice ->
+                InvoiceTable
+                    .update({InvoiceTable.id eq fetchedInvoice.id }) {
+                        it[InvoiceTable.status] = InvoiceStatus.PROCESSING.toString()
+                    }
+            }
+            fetched
         }
     }
 

@@ -190,10 +190,9 @@ class BillingServiceTest {
 
     private fun fetchInvoicesAndUpdate(status: InvoiceStatus, invoices : List<Invoice>) : AntaeusDal {
         return mockk<AntaeusDal> {
-            every { fetchInvoicesByStatus(status) } returns invoices
+            every { fetchInvoicesByStatusAndUpdate(status) } returns invoices
             every { updateInvoice(any(), any()) } just runs
         }
-
     }
 
     private fun verifyInvoiceHasBeenUpdated(dal: AntaeusDal, invoiceId: Int, updatedInvoice : Invoice) {

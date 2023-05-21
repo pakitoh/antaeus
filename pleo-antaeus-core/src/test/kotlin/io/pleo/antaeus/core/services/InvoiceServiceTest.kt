@@ -78,6 +78,16 @@ class InvoiceServiceTest {
     }
 
     @Test
+    fun `fetchByStatusAndUpdate pending should return all PENDING invoices and `() {
+        val dal = fetchByStatusAndUpdate(InvoiceStatus.PENDING, listOf(pendingInvoice))
+        val invoiceService = InvoiceService(dal = dal)
+
+        val pendingInvoices = invoiceService.fetchByStatusAndUpdate(InvoiceStatus.PENDING)
+
+        assertThat(pendingInvoices, containsInAnyOrder(pendingInvoice))
+    }
+
+    @Test
     fun `update should update invoice in DB`() {
         val dal = updateInvoice(invoiceToUpdate)
         val invoiceService = InvoiceService(dal = dal)
@@ -102,6 +112,12 @@ class InvoiceServiceTest {
     private fun fetchInvoicesByStatus(status: InvoiceStatus, resul: List<Invoice>) : AntaeusDal {
         return mockk<AntaeusDal> {
             every { fetchInvoicesByStatus(status) } returns resul
+        }
+    }
+
+    private fun fetchByStatusAndUpdate(status: InvoiceStatus, resul: List<Invoice>) : AntaeusDal {
+        return mockk<AntaeusDal> {
+            every { fetchInvoicesByStatusAndUpdate(status) } returns resul
         }
     }
 

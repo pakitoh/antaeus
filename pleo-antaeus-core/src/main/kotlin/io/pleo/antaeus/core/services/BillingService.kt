@@ -61,15 +61,14 @@ class BillingService(
     fun processPending() {
         logger.info { "Starting to request the payment of pending invoices" }
         invoiceService
-            .fetchByStatus(InvoiceStatus.PENDING)
+            .fetchByStatusAndUpdate(InvoiceStatus.PENDING)
             .forEach { bill(it) }
     }
 
     fun processRejected() {
         logger.info { "Starting to request the payment of rejected invoices" }
         invoiceService
-            .fetchByStatus(InvoiceStatus.REJECTED)
+            .fetchByStatusAndUpdate(InvoiceStatus.REJECTED)
             .forEach { bill(it) }
     }
-
 }
