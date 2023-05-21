@@ -25,6 +25,7 @@ import org.jetbrains.exposed.sql.transactions.transaction
 import setupInitialData
 import java.io.File
 import java.sql.Connection
+import java.util.Properties
 
 fun main() {
     // The tables to create in the database.
@@ -69,9 +70,9 @@ fun main() {
 
     // Schedule payments
     val scheduler = PaymentScheduler()
-    val monthlySchedule = "0/30 * * * * ?" //"0 0 12 1 * ?"
+    val monthlySchedule = ConfigLoader("pendingInvoicesScheduler.properties").get("pleo.scheduler.cron")
     scheduler.schedulePending(billingService, monthlySchedule)
-    val plus3DaysSchedule = "15/30 * * * * ?" //"0 0 12 4/3 * ?"
+    val plus3DaysSchedule = ConfigLoader("rejectedInvoicesScheduler.properties").get("pleo.scheduler.cron")
     scheduler.scheduleRejected(billingService, plus3DaysSchedule)
 
     // Create REST web service
