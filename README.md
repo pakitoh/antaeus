@@ -191,6 +191,7 @@ Maybe we can add the circuit breaker in the second iteration.
 As we are using the DB as a communication mechanism with other systems in the company we are going to include new states an invoice could be set at.
 Instead of just PENDING and PAID we can model something like:
 - PENDING
+- PROCESSING
 - PAID
 - REJECTED
 - CUSTOMER_NOT_FOUND
@@ -303,7 +304,6 @@ We have to add 2 new components:
 
 ![DB sharding architecture.png](docs/images/architecture_sharding.png)
 
-
 ### Iteration #6 Microservices
 
 In order to be able to scale independently each component of the system we can split up the Antaeus monolith and create a microservices architecture.
@@ -312,7 +312,20 @@ We'll stick to [CQRS](https://en.wikipedia.org/wiki/Command%E2%80%93query_separa
 
 ![Services architecture.png](docs/images/architecture_services.png)
 
+## Work journal
 
+I've spent around 16 hours working on the challenge:
+- A couple of hours working in initial analysis and PoCs.
+- Around 6 hours designing and developing MVC.
+- A little bit more than 4 hours documenting and detailing the evolution of the architecture from MVP to microservices.
+- Less than 4 hours polishing code, docs and adding a couple of improvements over the MVP.
 
+## Conclusion
+
+It has been fun doing the challenge!! 😁
+Having the DB as communication mechanism was a weird idea for me at first and that forced me to think outside my comfort zone which is always enriching. 
+There are lots of ideas that I had to leave out due to time limitations (I would have loved to play a bit with Ktor) but we always have to ship at some point. 
+
+Cheers!
 
 
